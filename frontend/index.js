@@ -44,7 +44,7 @@ async function renderCalendar() {
     for (let day = 1; day <= daysInMonth; day++) {
         const date = new Date(year, month, day);
         const isToday = date.toDateString() === new Date().toDateString();
-        const isPast = date < new Date();
+        const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
         const isSelected = date.toDateString() === selectedDate.toDateString();
 
         calendarHTML += `
@@ -104,6 +104,8 @@ async function renderDayDetail() {
     showLoading();
 
     const dateString = `${selectedDate.getFullYear()}-${selectedDate.getMonth() + 1}-${selectedDate.getDate()}`;
+    const isPastDay = selectedDate < new Date(new Date().setHours(0, 0, 0, 0));
+
     try {
         const data = await backend.getDayData(dateString);
         console.log('Day data:', data); // Debugging log
@@ -144,16 +146,26 @@ async function renderDayDetail() {
 
         detailHTML += `
                 </ul>
+        `;
+
+        if (!isPastDay) {
+            detailHTML += `
                 <div class="add-note">
                     <input type="text" id="new-note" placeholder="New note">
                     <button id="add-note">Add Note</button>
                 </div>
+            `;
+        }
+
+        detailHTML += `
             </div>
         `;
 
         dayDetail.innerHTML = detailHTML;
 
-        document.getElementById('add-note').addEventListener('click', addNote);
+        if (!isPastDay) {
+            document.getElementById('add-note').addEventListener('click', addNote);
+        }
 
         document.querySelectorAll('.complete-note').forEach(button => {
             button.addEventListener('click', () => completeNote(parseInt(button.dataset.id)));
@@ -172,7 +184,7 @@ async function renderDayDetail() {
 async function addNote() {
     const newNoteInput = document.getElementById('new-note');
     const content = newNoteInput.value.trim();
-    if (content) {
+    if (content && selectedDate >= new Date(new Date().setHours(0, 0, 0, 0))) {
         showLoading();
         const dateString = `${selectedDate.getFullYear()}-${selectedDate.getMonth() + 1}-${selectedDate.getDate()}`;
         try {

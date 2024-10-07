@@ -1,6 +1,8 @@
 import Bool "mo:base/Bool";
+import Char "mo:base/Char";
 import Func "mo:base/Func";
 import Hash "mo:base/Hash";
+import Nat32 "mo:base/Nat32";
 
 import Debug "mo:base/Debug";
 import HashMap "mo:base/HashMap";
@@ -41,24 +43,32 @@ actor {
 
   // Function to add a note
   public func addNote(date: Text, content: Text) : async () {
-    let currentData = switch (dayData.get(date)) {
-      case null { { notes = []; onThisDay = null; } };
-      case (?data) { data };
+    let currentTimestamp = Time.now();
+    let currentDate = Int.abs(currentTimestamp / (24 * 60 * 60 * 1000_000_000));
+    let inputDate = textToDate(date);
+
+    if (inputDate >= currentDate) {
+      let currentData = switch (dayData.get(date)) {
+        case null { { notes = []; onThisDay = null; } };
+        case (?data) { data };
+      };
+      
+      let newNote : Note = {
+        id = Array.size(currentData.notes);
+        content = content;
+        isCompleted = false;
+      };
+      
+      let updatedNotes = Array.append(currentData.notes, [newNote]);
+      let updatedData : DayData = {
+        notes = updatedNotes;
+        onThisDay = currentData.onThisDay;
+      };
+      
+      dayData.put(date, updatedData);
+    } else {
+      Debug.print("Cannot add notes to past dates");
     };
-    
-    let newNote : Note = {
-      id = Array.size(currentData.notes);
-      content = content;
-      isCompleted = false;
-    };
-    
-    let updatedNotes = Array.append(currentData.notes, [newNote]);
-    let updatedData : DayData = {
-      notes = updatedNotes;
-      onThisDay = currentData.onThisDay;
-    };
-    
-    dayData.put(date, updatedData);
   };
 
   // Function to complete a note
@@ -108,6 +118,31 @@ actor {
     Iter.toArray(Iter.filter(dayData.entries(), func ((k, v) : (Text, DayData)) : Bool {
       Text.startsWith(k, #text monthPrefix)
     }))
+  };
+
+  // Helper function to convert date string to timestamp
+  private func textToDate(dateStr: Text) : Int {
+    let parts = Iter.toArray(Text.split(dateStr, #char '-'));
+    if (parts.size() == 3) {
+      let year = textToNat(parts[0]);
+      let month = textToNat(parts[1]);
+      let day = textToNat(parts[2]);
+      // Simplified date to days since epoch calculation
+      return (year * 365 + month * 30 + day);
+    };
+    return 0;
+  };
+
+  // Helper function to convert text to Nat
+  private func textToNat(t : Text) : Nat {
+    var n : Nat = 0;
+    for (c in t.chars()) {
+      let charToNat = Nat32.toNat(Char.toNat32(c) - 48);
+      if (charToNat >= 0 and charToNat <= 9) {
+        n := n * 10 + charToNat;
+      };
+    };
+    n
   };
 
   // Pre-upgrade hook to store the data
