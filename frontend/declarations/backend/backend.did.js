@@ -1,17 +1,16 @@
 export const idlFactory = ({ IDL }) => {
+  const OnThisDay = IDL.Record({
+    'title' : IDL.Text,
+    'wikiLink' : IDL.Text,
+    'year' : IDL.Int,
+  });
   const Note = IDL.Record({
     'id' : IDL.Nat,
     'content' : IDL.Text,
     'isCompleted' : IDL.Bool,
   });
   const DayData = IDL.Record({
-    'onThisDay' : IDL.Opt(
-      IDL.Record({
-        'title' : IDL.Text,
-        'wikiLink' : IDL.Text,
-        'year' : IDL.Int,
-      })
-    ),
+    'onThisDay' : IDL.Opt(OnThisDay),
     'notes' : IDL.Vec(Note),
   });
   return IDL.Service({

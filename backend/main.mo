@@ -19,13 +19,15 @@ actor {
     isCompleted: Bool;
   };
 
+  type OnThisDay = {
+    title: Text;
+    year: Int;
+    wikiLink: Text;
+  };
+
   type DayData = {
     notes: [Note];
-    onThisDay: ?{
-      title: Text;
-      year: Int;
-      wikiLink: Text;
-    };
+    onThisDay: ?OnThisDay;
   };
 
   // Create a stable variable to store the data

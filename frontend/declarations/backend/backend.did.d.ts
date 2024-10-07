@@ -3,15 +3,18 @@ import type { ActorMethod } from '@dfinity/agent';
 import type { IDL } from '@dfinity/candid';
 
 export interface DayData {
-  'onThisDay' : [] | [
-    { 'title' : string, 'wikiLink' : string, 'year' : bigint }
-  ],
+  'onThisDay' : [] | [OnThisDay],
   'notes' : Array<Note>,
 }
 export interface Note {
   'id' : bigint,
   'content' : string,
   'isCompleted' : boolean,
+}
+export interface OnThisDay {
+  'title' : string,
+  'wikiLink' : string,
+  'year' : bigint,
 }
 export interface _SERVICE {
   'addNote' : ActorMethod<[string, string], undefined>,

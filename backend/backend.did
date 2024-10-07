@@ -1,3 +1,9 @@
+type OnThisDay = 
+ record {
+   title: text;
+   wikiLink: text;
+   year: int;
+ };
 type Note = 
  record {
    content: text;
@@ -7,11 +13,7 @@ type Note =
 type DayData = 
  record {
    notes: vec Note;
-   onThisDay: opt record {
-                    title: text;
-                    wikiLink: text;
-                    year: int;
-                  };
+   onThisDay: opt OnThisDay;
  };
 service : {
   addNote: (text, text) -> ();
