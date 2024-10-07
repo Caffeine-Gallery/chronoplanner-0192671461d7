@@ -17,6 +17,11 @@ export const idlFactory = ({ IDL }) => {
     'addNote' : IDL.Func([IDL.Text, IDL.Text], [], []),
     'completeNote' : IDL.Func([IDL.Text, IDL.Nat], [], []),
     'getDayData' : IDL.Func([IDL.Text], [IDL.Opt(DayData)], ['query']),
+    'getMonthData' : IDL.Func(
+        [IDL.Nat, IDL.Nat],
+        [IDL.Vec(IDL.Tuple(IDL.Text, DayData))],
+        ['query'],
+      ),
     'storeOnThisDay' : IDL.Func(
         [IDL.Text, IDL.Text, IDL.Int, IDL.Text],
         [],

@@ -19,5 +19,9 @@ service : {
   addNote: (text, text) -> ();
   completeNote: (text, nat) -> ();
   getDayData: (text) -> (opt DayData) query;
+  getMonthData: (nat, nat) -> (vec record {
+                                     text;
+                                     DayData;
+                                   }) query;
   storeOnThisDay: (text, text, int, text) -> ();
 }

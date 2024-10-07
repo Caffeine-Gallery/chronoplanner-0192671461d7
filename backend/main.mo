@@ -102,6 +102,14 @@ actor {
     dayData.put(date, updatedData);
   };
 
+  // New function to get data for an entire month
+  public query func getMonthData(year: Nat, month: Nat) : async [(Text, DayData)] {
+    let monthPrefix = Text.concat(Int.toText(year), "-" # Int.toText(month) # "-");
+    Iter.toArray(Iter.filter(dayData.entries(), func ((k, v) : (Text, DayData)) : Bool {
+      Text.startsWith(k, #text monthPrefix)
+    }))
+  };
+
   // Pre-upgrade hook to store the data
   system func preupgrade() {
     dayDataEntries := Iter.toArray(dayData.entries());

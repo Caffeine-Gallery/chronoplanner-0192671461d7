@@ -2,11 +2,23 @@ import { backend } from 'declarations/backend';
 
 const calendar = document.getElementById('calendar');
 const dayDetail = document.getElementById('day-detail');
+const loadingSpinner = document.getElementById('loading-spinner');
 
 let currentDate = new Date();
 let selectedDate = null;
 
-function renderCalendar() {
+function showLoading() {
+    loadingSpinner.style.display = 'block';
+    document.querySelectorAll('button').forEach(button => button.disabled = true);
+}
+
+function hideLoading() {
+    loadingSpinner.style.display = 'none';
+    document.querySelectorAll('button').forEach(button => button.disabled = false);
+}
+
+async function renderCalendar() {
+    showLoading();
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -53,38 +65,36 @@ function renderCalendar() {
         });
     });
 
-    fetchMonthData();
+    await fetchMonthData();
+    hideLoading();
 }
 
 async function fetchMonthData() {
     const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-    for (let day = 1; day <= daysInMonth; day++) {
-        const date = `${year}-${month + 1}-${day}`;
-        try {
-            const dayData = await backend.getDayData(date);
-            if (dayData && dayData.length > 0) {
-                const incompleteNotes = dayData[0].notes.filter(note => !note.isCompleted).length;
-                const noteCountElement = document.getElementById(`note-count-${day}`);
-                if (noteCountElement) {
-                    if (incompleteNotes > 0) {
-                        noteCountElement.textContent = incompleteNotes;
-                        noteCountElement.style.display = 'flex';
-                    } else {
-                        noteCountElement.style.display = 'none';
-                    }
+    const month = currentDate.getMonth() + 1; // JavaScript months are 0-indexed
+    try {
+        const monthData = await backend.getMonthData(year, month);
+        monthData.forEach(([dateString, dayData]) => {
+            const [, , day] = dateString.split('-');
+            const incompleteNotes = dayData.notes.filter(note => !note.isCompleted).length;
+            const noteCountElement = document.getElementById(`note-count-${day}`);
+            if (noteCountElement) {
+                if (incompleteNotes > 0) {
+                    noteCountElement.textContent = incompleteNotes;
+                    noteCountElement.style.display = 'flex';
+                } else {
+                    noteCountElement.style.display = 'none';
                 }
             }
-        } catch (error) {
-            console.error(`Error fetching data for ${date}:`, error);
-        }
+        });
+    } catch (error) {
+        console.error(`Error fetching data for ${year}-${month}:`, error);
     }
 }
 
 async function renderDayDetail() {
     if (!selectedDate) return;
+    showLoading();
 
     const dateString = `${selectedDate.getFullYear()}-${selectedDate.getMonth() + 1}-${selectedDate.getDate()}`;
     try {
@@ -155,39 +165,45 @@ async function renderDayDetail() {
         console.error('Error rendering day detail:', error);
         dayDetail.innerHTML = '<p>Error loading day details. Please try again.</p>';
     }
+    hideLoading();
 }
 
 async function addNote() {
     const newNoteInput = document.getElementById('new-note');
     const content = newNoteInput.value.trim();
     if (content && selectedDate) {
+        showLoading();
         const dateString = `${selectedDate.getFullYear()}-${selectedDate.getMonth() + 1}-${selectedDate.getDate()}`;
         try {
             await backend.addNote(dateString, content);
             newNoteInput.value = '';
-            renderDayDetail();
-            renderCalendar();
+            await renderDayDetail();
+            await renderCalendar();
         } catch (error) {
             console.error('Error adding note:', error);
         }
+        hideLoading();
     }
 }
 
 async function completeNote(noteId) {
     if (selectedDate) {
+        showLoading();
         const dateString = `${selectedDate.getFullYear()}-${selectedDate.getMonth() + 1}-${selectedDate.getDate()}`;
         try {
             await backend.completeNote(dateString, noteId);
-            renderDayDetail();
-            renderCalendar();
+            await renderDayDetail();
+            await renderCalendar();
         } catch (error) {
             console.error('Error completing note:', error);
         }
+        hideLoading();
     }
 }
 
 async function fetchOnThisDay() {
     if (!selectedDate) return;
+    showLoading();
 
     const month = (selectedDate.getMonth() + 1).toString().padStart(2, '0');
     const day = selectedDate.getDate().toString().padStart(2, '0');
@@ -201,11 +217,12 @@ async function fetchOnThisDay() {
             const item = data.selected[0];
             const dateString = `${selectedDate.getFullYear()}-${selectedDate.getMonth() + 1}-${selectedDate.getDate()}`;
             await backend.storeOnThisDay(dateString, item.text, item.year, item.pages[0].content_urls.desktop.page);
-            renderDayDetail();
+            await renderDayDetail();
         }
     } catch (error) {
         console.error('Error fetching On This Day data:', error);
     }
+    hideLoading();
 }
 
 renderCalendar();
