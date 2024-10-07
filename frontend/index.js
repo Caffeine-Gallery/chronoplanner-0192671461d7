@@ -171,6 +171,7 @@ async function fetchOnThisDay() {
     try {
         const response = await fetch(url);
         const data = await response.json();
+        console.log('On This Day API Response:', data);  // Print the entire response to the console
         if (data.selected && data.selected.length > 0) {
             const item = data.selected[0];
             const dateString = `${selectedDate.getFullYear()}-${selectedDate.getMonth() + 1}-${selectedDate.getDate()}`;
