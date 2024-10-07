@@ -5,7 +5,7 @@ const dayDetail = document.getElementById('day-detail');
 const loadingSpinner = document.getElementById('loading-spinner');
 
 let currentDate = new Date();
-let selectedDate = null;
+let selectedDate = new Date();
 
 function showLoading() {
     loadingSpinner.style.display = 'block';
@@ -26,6 +26,7 @@ async function renderCalendar() {
 
     let calendarHTML = `
         <h2>${currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</h2>
+        <button id="go-to-today">Go to Today</button>
         <div class="calendar-grid">
             <div class="weekday">Sun</div>
             <div class="weekday">Mon</div>
@@ -44,9 +45,10 @@ async function renderCalendar() {
         const date = new Date(year, month, day);
         const isToday = date.toDateString() === new Date().toDateString();
         const isPast = date < new Date();
+        const isSelected = date.toDateString() === selectedDate.toDateString();
 
         calendarHTML += `
-            <div class="day ${isToday ? 'today' : ''} ${isPast ? 'past' : ''}" data-date="${date.toISOString()}">
+            <div class="day ${isToday ? 'today' : ''} ${isPast ? 'past' : ''} ${isSelected ? 'selected' : ''}" data-date="${date.toISOString()}">
                 <span>${day}</span>
                 <span class="note-count" id="note-count-${day}" style="display: none;"></span>
             </div>
@@ -58,11 +60,17 @@ async function renderCalendar() {
 
     document.querySelectorAll('.day').forEach(dayElement => {
         dayElement.addEventListener('click', () => {
-            if (!dayElement.classList.contains('past')) {
-                selectedDate = new Date(dayElement.dataset.date);
-                renderDayDetail();
-            }
+            selectedDate = new Date(dayElement.dataset.date);
+            renderCalendar();
+            renderDayDetail();
         });
+    });
+
+    document.getElementById('go-to-today').addEventListener('click', () => {
+        selectedDate = new Date();
+        currentDate = new Date();
+        renderCalendar();
+        renderDayDetail();
     });
 
     await fetchMonthData();
@@ -93,7 +101,6 @@ async function fetchMonthData() {
 }
 
 async function renderDayDetail() {
-    if (!selectedDate) return;
     showLoading();
 
     const dateString = `${selectedDate.getFullYear()}-${selectedDate.getMonth() + 1}-${selectedDate.getDate()}`;
@@ -104,7 +111,6 @@ async function renderDayDetail() {
 
         let detailHTML = `
             <h2>${selectedDate.toDateString()}</h2>
-            <button id="close-detail">Close</button>
             <div class="on-this-day">
                 <h3>On This Day</h3>
         `;
@@ -117,7 +123,7 @@ async function renderDayDetail() {
                 <a href="${onThisDay.wikiLink || '#'}" target="_blank" rel="noopener noreferrer">Read more</a>
             `;
         } else {
-            detailHTML += '<button id="fetch-on-this-day">Request Data</button>';
+            detailHTML += '<button id="fetch-on-this-day">Fetch via HTTPS Outcall</button>';
         }
 
         detailHTML += `
@@ -131,7 +137,7 @@ async function renderDayDetail() {
             detailHTML += `
                 <li class="${note.isCompleted ? 'completed' : ''}">
                     ${note.content}
-                    ${!note.isCompleted ? `<button class="complete-note" data-id="${note.id}">Complete</button>` : ''}
+                    ${!note.isCompleted ? `<button class="complete-note" data-id="${note.id}">Mark As Done</button>` : ''}
                 </li>
             `;
         });
@@ -146,11 +152,6 @@ async function renderDayDetail() {
         `;
 
         dayDetail.innerHTML = detailHTML;
-
-        document.getElementById('close-detail').addEventListener('click', () => {
-            dayDetail.innerHTML = '';
-            selectedDate = null;
-        });
 
         document.getElementById('add-note').addEventListener('click', addNote);
 
@@ -171,7 +172,7 @@ async function renderDayDetail() {
 async function addNote() {
     const newNoteInput = document.getElementById('new-note');
     const content = newNoteInput.value.trim();
-    if (content && selectedDate) {
+    if (content) {
         showLoading();
         const dateString = `${selectedDate.getFullYear()}-${selectedDate.getMonth() + 1}-${selectedDate.getDate()}`;
         try {
@@ -187,22 +188,19 @@ async function addNote() {
 }
 
 async function completeNote(noteId) {
-    if (selectedDate) {
-        showLoading();
-        const dateString = `${selectedDate.getFullYear()}-${selectedDate.getMonth() + 1}-${selectedDate.getDate()}`;
-        try {
-            await backend.completeNote(dateString, noteId);
-            await renderDayDetail();
-            await renderCalendar();
-        } catch (error) {
-            console.error('Error completing note:', error);
-        }
-        hideLoading();
+    showLoading();
+    const dateString = `${selectedDate.getFullYear()}-${selectedDate.getMonth() + 1}-${selectedDate.getDate()}`;
+    try {
+        await backend.completeNote(dateString, noteId);
+        await renderDayDetail();
+        await renderCalendar();
+    } catch (error) {
+        console.error('Error completing note:', error);
     }
+    hideLoading();
 }
 
 async function fetchOnThisDay() {
-    if (!selectedDate) return;
     showLoading();
 
     const month = (selectedDate.getMonth() + 1).toString().padStart(2, '0');
@@ -226,3 +224,4 @@ async function fetchOnThisDay() {
 }
 
 renderCalendar();
+renderDayDetail();

@@ -60,7 +60,11 @@ h1 {
 
 .past {
     color: #999;
-    cursor: not-allowed;
+}
+
+.selected {
+    background-color: #1890ff;
+    color: white;
 }
 
 .note-count {
@@ -170,4 +174,9 @@ button:disabled {
 @keyframes spin {
     0% { transform: translate(-50%, -50%) rotate(0deg); }
     100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+#go-to-today {
+    display: block;
+    margin: 10px auto;
 }
