@@ -36,7 +36,7 @@ function renderCalendar() {
         calendarHTML += `
             <div class="day ${isToday ? 'today' : ''} ${isPast ? 'past' : ''}" data-date="${date.toISOString()}">
                 <span>${day}</span>
-                <span class="note-count" id="note-count-${day}"></span>
+                <span class="note-count" id="note-count-${day}" style="display: none;"></span>
             </div>
         `;
     }
@@ -63,18 +63,22 @@ async function fetchMonthData() {
 
     for (let day = 1; day <= daysInMonth; day++) {
         const date = `${year}-${month + 1}-${day}`;
-        const dayData = await backend.getDayData(date);
-        if (dayData && dayData[0]) {
-            const incompleteNotes = dayData[0].notes.filter(note => !note.isCompleted).length;
-            const noteCountElement = document.getElementById(`note-count-${day}`);
-            if (noteCountElement) {
-                if (incompleteNotes >= 1) {
-                    noteCountElement.textContent = incompleteNotes;
-                    noteCountElement.style.display = 'flex';
-                } else {
-                    noteCountElement.style.display = 'none';
+        try {
+            const dayData = await backend.getDayData(date);
+            if (dayData && dayData.length > 0) {
+                const incompleteNotes = dayData[0].notes.filter(note => !note.isCompleted).length;
+                const noteCountElement = document.getElementById(`note-count-${day}`);
+                if (noteCountElement) {
+                    if (incompleteNotes > 0) {
+                        noteCountElement.textContent = incompleteNotes;
+                        noteCountElement.style.display = 'flex';
+                    } else {
+                        noteCountElement.style.display = 'none';
+                    }
                 }
             }
+        } catch (error) {
+            console.error(`Error fetching data for ${date}:`, error);
         }
     }
 }
@@ -83,67 +87,73 @@ async function renderDayDetail() {
     if (!selectedDate) return;
 
     const dateString = `${selectedDate.getFullYear()}-${selectedDate.getMonth() + 1}-${selectedDate.getDate()}`;
-    const data = await backend.getDayData(dateString);
-    console.log('Day data:', data); // Debugging log
-    const dayData = data[0] || { notes: [], onThisDay: null };
+    try {
+        const data = await backend.getDayData(dateString);
+        console.log('Day data:', data); // Debugging log
+        const dayData = data && data.length > 0 ? data[0] : { notes: [], onThisDay: null };
 
-    let detailHTML = `
-        <h2>${selectedDate.toDateString()}</h2>
-        <button id="close-detail">Close</button>
-        <div class="on-this-day">
-            <h3>On This Day</h3>
-    `;
-
-    if (dayData.onThisDay) {
-        console.log('On This Day data:', dayData.onThisDay); // Debugging log
-        detailHTML += `
-            <p>${dayData.onThisDay.title || 'No title'} (${dayData.onThisDay.year || 'No year'})</p>
-            <a href="${dayData.onThisDay.wikiLink || '#'}" target="_blank" rel="noopener noreferrer">Read more</a>
+        let detailHTML = `
+            <h2>${selectedDate.toDateString()}</h2>
+            <button id="close-detail">Close</button>
+            <div class="on-this-day">
+                <h3>On This Day</h3>
         `;
-    } else {
-        detailHTML += '<button id="fetch-on-this-day">Request Data</button>';
-    }
 
-    detailHTML += `
-        </div>
-        <div class="notes">
-            <h3>Notes</h3>
-            <ul>
-    `;
+        if (dayData.onThisDay && dayData.onThisDay.length > 0) {
+            console.log('On This Day data:', dayData.onThisDay[0]); // Debugging log
+            const onThisDay = dayData.onThisDay[0];
+            detailHTML += `
+                <p>${onThisDay.title || 'No title'} (${onThisDay.year || 'No year'})</p>
+                <a href="${onThisDay.wikiLink || '#'}" target="_blank" rel="noopener noreferrer">Read more</a>
+            `;
+        } else {
+            detailHTML += '<button id="fetch-on-this-day">Request Data</button>';
+        }
 
-    dayData.notes.forEach(note => {
         detailHTML += `
-            <li class="${note.isCompleted ? 'completed' : ''}">
-                ${note.content}
-                ${!note.isCompleted ? `<button class="complete-note" data-id="${note.id}">Complete</button>` : ''}
-            </li>
-        `;
-    });
-
-    detailHTML += `
-            </ul>
-            <div class="add-note">
-                <input type="text" id="new-note" placeholder="New note">
-                <button id="add-note">Add Note</button>
             </div>
-        </div>
-    `;
+            <div class="notes">
+                <h3>Notes</h3>
+                <ul>
+        `;
 
-    dayDetail.innerHTML = detailHTML;
+        dayData.notes.forEach(note => {
+            detailHTML += `
+                <li class="${note.isCompleted ? 'completed' : ''}">
+                    ${note.content}
+                    ${!note.isCompleted ? `<button class="complete-note" data-id="${note.id}">Complete</button>` : ''}
+                </li>
+            `;
+        });
 
-    document.getElementById('close-detail').addEventListener('click', () => {
-        dayDetail.innerHTML = '';
-        selectedDate = null;
-    });
+        detailHTML += `
+                </ul>
+                <div class="add-note">
+                    <input type="text" id="new-note" placeholder="New note">
+                    <button id="add-note">Add Note</button>
+                </div>
+            </div>
+        `;
 
-    document.getElementById('add-note').addEventListener('click', addNote);
+        dayDetail.innerHTML = detailHTML;
 
-    document.querySelectorAll('.complete-note').forEach(button => {
-        button.addEventListener('click', () => completeNote(parseInt(button.dataset.id)));
-    });
+        document.getElementById('close-detail').addEventListener('click', () => {
+            dayDetail.innerHTML = '';
+            selectedDate = null;
+        });
 
-    if (!dayData.onThisDay) {
-        document.getElementById('fetch-on-this-day').addEventListener('click', fetchOnThisDay);
+        document.getElementById('add-note').addEventListener('click', addNote);
+
+        document.querySelectorAll('.complete-note').forEach(button => {
+            button.addEventListener('click', () => completeNote(parseInt(button.dataset.id)));
+        });
+
+        if (!dayData.onThisDay || dayData.onThisDay.length === 0) {
+            document.getElementById('fetch-on-this-day').addEventListener('click', fetchOnThisDay);
+        }
+    } catch (error) {
+        console.error('Error rendering day detail:', error);
+        dayDetail.innerHTML = '<p>Error loading day details. Please try again.</p>';
     }
 }
 
@@ -152,19 +162,27 @@ async function addNote() {
     const content = newNoteInput.value.trim();
     if (content && selectedDate) {
         const dateString = `${selectedDate.getFullYear()}-${selectedDate.getMonth() + 1}-${selectedDate.getDate()}`;
-        await backend.addNote(dateString, content);
-        newNoteInput.value = '';
-        renderDayDetail();
-        renderCalendar();
+        try {
+            await backend.addNote(dateString, content);
+            newNoteInput.value = '';
+            renderDayDetail();
+            renderCalendar();
+        } catch (error) {
+            console.error('Error adding note:', error);
+        }
     }
 }
 
 async function completeNote(noteId) {
     if (selectedDate) {
         const dateString = `${selectedDate.getFullYear()}-${selectedDate.getMonth() + 1}-${selectedDate.getDate()}`;
-        await backend.completeNote(dateString, noteId);
-        renderDayDetail();
-        renderCalendar();
+        try {
+            await backend.completeNote(dateString, noteId);
+            renderDayDetail();
+            renderCalendar();
+        } catch (error) {
+            console.error('Error completing note:', error);
+        }
     }
 }
 
