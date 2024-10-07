@@ -132,21 +132,22 @@ async function renderDayDetail() {
             </div>
             <div class="notes">
                 <h3>Notes</h3>
-                <ul>
         `;
 
-        dayData.notes.forEach(note => {
-            detailHTML += `
-                <li class="${note.isCompleted ? 'completed' : ''}">
-                    ${note.content}
-                    ${!note.isCompleted ? `<button class="complete-note" data-id="${note.id}">Mark As Done</button>` : ''}
-                </li>
-            `;
-        });
-
-        detailHTML += `
-                </ul>
-        `;
+        if (dayData.notes.length === 0) {
+            detailHTML += '<p>-</p>';
+        } else {
+            detailHTML += '<ul>';
+            dayData.notes.forEach(note => {
+                detailHTML += `
+                    <li class="${note.isCompleted ? 'completed' : ''}">
+                        ${note.content}
+                        ${!note.isCompleted ? `<button class="complete-note" data-id="${note.id}">Mark As Done</button>` : ''}
+                    </li>
+                `;
+            });
+            detailHTML += '</ul>';
+        }
 
         if (!isPastDay) {
             detailHTML += `
