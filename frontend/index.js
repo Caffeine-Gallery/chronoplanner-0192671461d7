@@ -67,8 +67,13 @@ async function fetchMonthData() {
         if (dayData && dayData[0]) {
             const incompleteNotes = dayData[0].notes.filter(note => !note.isCompleted).length;
             const noteCountElement = document.getElementById(`note-count-${day}`);
-            if (noteCountElement && incompleteNotes > 0) {
-                noteCountElement.textContent = incompleteNotes;
+            if (noteCountElement) {
+                if (incompleteNotes >= 1) {
+                    noteCountElement.textContent = incompleteNotes;
+                    noteCountElement.style.display = 'flex';
+                } else {
+                    noteCountElement.style.display = 'none';
+                }
             }
         }
     }
@@ -79,6 +84,7 @@ async function renderDayDetail() {
 
     const dateString = `${selectedDate.getFullYear()}-${selectedDate.getMonth() + 1}-${selectedDate.getDate()}`;
     const data = await backend.getDayData(dateString);
+    console.log('Day data:', data); // Debugging log
     const dayData = data[0] || { notes: [], onThisDay: null };
 
     let detailHTML = `
@@ -89,9 +95,10 @@ async function renderDayDetail() {
     `;
 
     if (dayData.onThisDay) {
+        console.log('On This Day data:', dayData.onThisDay); // Debugging log
         detailHTML += `
-            <p>${dayData.onThisDay.title} (${dayData.onThisDay.year})</p>
-            <a href="${dayData.onThisDay.wikiLink}" target="_blank" rel="noopener noreferrer">Read more</a>
+            <p>${dayData.onThisDay.title || 'No title'} (${dayData.onThisDay.year || 'No year'})</p>
+            <a href="${dayData.onThisDay.wikiLink || '#'}" target="_blank" rel="noopener noreferrer">Read more</a>
         `;
     } else {
         detailHTML += '<button id="fetch-on-this-day">Request Data</button>';
