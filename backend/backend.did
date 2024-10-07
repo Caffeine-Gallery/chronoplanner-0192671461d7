@@ -1,0 +1,21 @@
+type Note = 
+ record {
+   content: text;
+   id: nat;
+   isCompleted: bool;
+ };
+type DayData = 
+ record {
+   notes: vec Note;
+   onThisDay: opt record {
+                    title: text;
+                    wikiLink: text;
+                    year: int;
+                  };
+ };
+service : {
+  addNote: (text, text) -> ();
+  completeNote: (text, nat) -> ();
+  getDayData: (text) -> (opt DayData) query;
+  storeOnThisDay: (text, text, int, text) -> ();
+}
